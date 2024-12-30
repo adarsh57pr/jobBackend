@@ -8,7 +8,7 @@ router.post('/create', registerUser)
 router.post('/login', loginUser)
 router.put('/update/:_id', checkToken , updateUser)
 router.delete('/delete/:_id',checkToken, deleteUser)
-router.post('/forgetpassword',checkToken,forgetPassword)
+router.post('/forgetpassword',forgetPassword)
 router.get('/forgetpassword/:token',verifyPasswordToken)
 router.post('/resetpassword/:token',resetPassword)
 

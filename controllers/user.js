@@ -39,30 +39,27 @@ const registerUser = async (req, res) => {
                 email,
                 password: hashedPassword,
                 role,
-              
+
             })
             res.status(201).json({ msg: "user registered successfully", success: true });
         } catch (error) {
             res.status(500).json({ msg: "error in register user", success: false, error: error.message })
         }
     }
-
-
-
 }
 
 const loginUser = async (req, res) => {
     // res.send("login function is running")
     const { email, password } = req.body;
-  
+
     try {
         let findUser = await UserCollection.findOne({ email });
 
         if (findUser) {
             let comparePassword = bcrypt.compareSync(password, findUser.password)
             if (comparePassword) {
-                let token = jwt.sign({ _id: findUser._id, role: findUser.role }, process.env.JWT_SECRET,{expiresIn:'24h'})
-                res.json({ msg: "login successfull", success: true, token: token, role:findUser.role,tokenExpire:'24h' })
+                let token = jwt.sign({ _id: findUser._id, role: findUser.role }, process.env.JWT_SECRET, { expiresIn: '24h' })
+                res.json({ msg: "login successfull", success: true, token: token, role: findUser.role, tokenExpire: '24h' })
             }
             else {
                 return res.json({ msg: "wrong password", success: false })
@@ -86,127 +83,121 @@ const updateUser = async (req, res) => {
     try {
         // console.log("login user id = ", _id);
         // console.log("params id = ", userId)
-    
+
         if (_id == userId) {
             if (password) {
                 var hashedPassword = bcrypt.hashSync(password, salt)
             }
-    
+
             let data = await UserCollection.findByIdAndUpdate(_id, { $set: { name, password: hashedPassword, bio, profession } });
-            res.json({ msg: "user updated successfully",success:true });
+            res.json({ msg: "user updated successfully", success: true });
         }
         else {
             return res.json({ msg: "not authorized to update this account", success: false })
         }
     } catch (error) {
-        res.status(500).json({ msg: "error in updating user", success: false, error: error.message }) 
+        res.status(500).json({ msg: "error in updating user", success: false, error: error.message })
     }
-  
+
 }
 
 const deleteUser = async (req, res) => {
-   const  {_id,role} = req.user
+    const { _id, role } = req.user
     // res.send("delete function is running")
-   try {
-    let paramsId = req.params._id;
-    if(_id==paramsId){
-        let data = await UserCollection.findByIdAndDelete(_id)
-        res.json({ msg: "user deleted successfully",success:true })
+    try {
+        let paramsId = req.params._id;
+        if (_id == paramsId) {
+            let data = await UserCollection.findByIdAndDelete(_id)
+            res.json({ msg: "user deleted successfully", success: true })
+        }
+        else {
+            return res.json({ msg: "not authorized to update this account", success: false })
+        }
+    } catch (error) {
+        res.status(500).json({ msg: "error in deleting user", success: false, error: error.message })
     }
-    else{
-        return res.json({ msg: "not authorized to update this account", success: false })
-    }
-   } catch (error) {
-    res.status(500).json({ msg: "error in deleting user", success: false, error: error.message })
-   }
-   
+
 }
 
 const forgetPassword = async (req, res) => {
     // res.send("forget password function is running")
     const { email } = req.body;
-   try {
-    let user = await UserCollection.findOne({ email});
-    if (!user) {
-        return res.json({ msg: "User not found", success: false });
-    }
-    let token = randomstring.generate(30);
-    user.resetPasswordToken = token;
-    await user.save();
+    try {
+        let user = await UserCollection.findOne({ email });
+        if (!user) {
+            return res.json({ msg: "User not found", success: false });
+        }
+        let token = randomstring.generate(30);
+        user.resetPasswordToken = token;
+        await user.save();
 
-    await sendEmail(email, token);
-    res.json({ msg: "Reset password link sent to your email", success: true });
-   } catch (error) {
-    res.json({ msg: " error in Reset password ", success: false, error: error.message});
-   }
+        await sendEmail(email, token);
+        res.json({ msg: "Reset password link sent to your email", success: true });
+    } catch (error) {
+        res.json({ msg: " error in Reset password ", success: false, error: error.message });
+    }
 }
 
-async function sendEmail(email , resetToken){
+async function sendEmail(email, resetToken) {
     // console.log( process.env.App_Email)
     // console.log( process.env.App_Password)
     const transporter = nodemailer.createTransport({
         host: "smtp.gmail.com",
-
         port: 587,
         secure: false, // true for port 465, false for other ports
         auth: {
-          user: process.env.App_Email,
-          pass: process.env.App_Password,
+            user: process.env.App_Email,
+            pass: process.env.App_Password,
         },
-      });
-      async function main() {
+    });
+    async function main() {
         // send mail with defined transport object
         const info = await transporter.sendMail({
-          from: process.env.App_Email, // sender address
-          to: email, // list of receivers
-          subject: "Password reset request", // Subject line
-          text: `please click the link below to choose a new password \n 
+            from: process.env.App_Email, // sender address
+            to: email, // list of receivers
+            subject: "Password reset request", // Subject line
+            text: `please click the link below to choose a new password \n 
           http://localhost:8080/users/forgetpassword/${resetToken}`, // plain text body
-        //   html: "<b>Hello world?</b>", // html body
+            //   html: "<b>Hello world?</b>", // html body
         });
-      
-        // console.log("Message sent: %s", info.messageId);
-        // Message sent: <d786aa62-4e0a-070a-47ed-0b0666549519@ethereal.email>
-      }
-      
-      main().catch(console.error);
+    }
+    main().catch(console.error);
 }
 
-const verifyPasswordToken = async(req , res )=>{
+const verifyPasswordToken = async (req, res) => {
     // res.send("password reset token verify")
     let token = req.params.token;
     // console.log(token);
-    let user  = await UserCollection.findOne({resetPasswordToken: token});
-    if(user){
-        res.render('ForgetPassword',{token})
-    }else{
-        res.json({msg: "token expired", success:false});
+    let user = await UserCollection.findOne({ resetPasswordToken: token });
+    if (user) {
+        res.render('ForgetPassword', { token })
+    } else {
+        res.json({ msg: "token expired", success: false });
     }
-
 }
 
-const resetPassword = async(req, res )=>{
-   try {
-    const {newPassword} = req.body;
-    let {token} = req.params
-    // console.log(newPassword);
-    // console.log(token);
-    if(!token){
-        return res.json({msg:"token is required", success:false})
-    }
-    if(!newPassword){
-        return res.json({msg:"new password is required", success:false})
-    }
-    let user = await UserCollection.findOne({resetPasswordToken:token});
-    let hashedPassword = bcrypt.hashSync(newPassword , salt);
-    user.password = hashedPassword;
-    user.resetPasswordToken = null;
-    await user.save();
-    res.json({msg:"password updated successfully", success:true})
+const resetPassword = async (req, res) => {
+    try {
+        const { newPassword } = req.body;
+        let { token } = req.params
+        // console.log(newPassword);
+        // console.log(token);
+        if (!token) {
+            return res.json({ msg: "token is required", success: false })
+        }
+        if (!newPassword) {
+            return res.json({ msg: "new password is required", success: false })
+        }
+        let user = await UserCollection.findOne({ resetPasswordToken: token });
+        let hashedPassword = bcrypt.hashSync(newPassword, salt);
+        user.password = hashedPassword;
+        user.resetPasswordToken = null;
+        await user.save();
+        res.json({ msg: "password updated successfully", success: true })
 
-   } catch (error) {
-    res.json({msg:"error in updatind password",success:false, error:error.message})
-   }
+    } catch (error) {
+        res.json({ msg: "error in updatind password", success: false, error: error.message })
+    }
 }
 
 
@@ -218,5 +209,4 @@ module.exports = {
     forgetPassword,
     verifyPasswordToken,
     resetPassword,
-   
 }

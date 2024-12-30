@@ -157,7 +157,7 @@ async function sendEmail(email, resetToken) {
             to: email, // list of receivers
             subject: "Password reset request", // Subject line
             text: `please click the link below to choose a new password \n 
-          http://localhost:8080/users/forgetpassword/${resetToken}`, // plain text body
+          https://jobbackend-6z5h.onrender.com/users/forgetpassword/${resetToken}`, // plain text body
             //   html: "<b>Hello world?</b>", // html body
         });
     }
